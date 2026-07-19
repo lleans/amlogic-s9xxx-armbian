@@ -1,0 +1,9 @@
+self-hosted-runner:
+  # actionlint's bundled runner-label database lags GitHub's actual hosted
+  # offerings. "ubuntu-26.04-arm" is a real, currently available GitHub-hosted
+  # runner label - confirmed directly from this project's own upstream
+  # .github/workflows/compile-kernel.yml, which already uses it for the same
+  # docker-based kernel-compile step. Not self-hosted; listed here only to
+  # silence actionlint's stale-label false positive.
+  labels:
+    - ubuntu-26.04-arm

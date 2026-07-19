@@ -54,7 +54,12 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    # The kernel-compile action defaults to the arm64-only Docker image
+    # "ophub/armbian-trixie:arm64" (see recompile's launch_docker_container(),
+    # which never passes --platform to `docker run`). On an x86_64 runner
+    # this fails with "no matching manifest for linux/amd64" - a native arm64
+    # runner is required, matching upstream's own compile-kernel.yml.
+    runs-on: ubuntu-26.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v6
