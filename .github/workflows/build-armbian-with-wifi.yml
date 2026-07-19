@@ -1,0 +1,143 @@
+#==========================================================================
+# Description: Build the Armbian OS image using the custom kernel from
+# compile-kernel-with-wifi.yml (RTL8821AU driver baked in)
+#
+# New, isolated addition — does not modify any upstream workflow. See
+# docs/superpowers/specs/2026-07-19-rtl8821au-driver-injection-design.md
+#==========================================================================
+
+name: Build Armbian with Wi-Fi driver
+
+on:
+  workflow_dispatch:
+    inputs:
+      set_release:
+        description: "OS release."
+        required: false
+        default: "trixie"
+        type: choice
+        options:
+          - trixie
+          - bookworm
+          - resolute
+          - noble
+      armbian_board:
+        description: "Target device board."
+        required: false
+        default: "s905x"
+        type: string
+      armbian_kernel:
+        description: "Kernel version (family, e.g. 6.12.y)."
+        required: false
+        default: "6.12.y"
+        type: string
+      kernel_usage:
+        description: "Tag suffix the custom kernel was published under."
+        required: false
+        default: "stable"
+        type: choice
+        options:
+          - stable
+          - flippy
+          - beta
+      armbian_fstype:
+        description: "Armbian rootfs type."
+        required: false
+        default: "ext4"
+        type: choice
+        options:
+          - ext4
+          - btrfs
+      builder_name:
+        description: "Armbian builder signature."
+        required: false
+        default: "ophub"
+        type: string
+  schedule:
+    - cron: "0 20 * * 0"
+  workflow_run:
+    workflows: ["Compile kernel with Wi-Fi driver"]
+    types:
+      - completed
+
+concurrency:
+  group: build-armbian-with-wifi
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  TZ: Etc/UTC
+
+jobs:
+  build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download latest Armbian base image from ophub
+        id: down
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SET_RELEASE: ${{ inputs.set_release || 'trixie' }}
+        run: |
+          mkdir -p build/output/images
+
+          latest_asset=$(curl -fsSL \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              "https://api.github.com/repos/ophub/amlogic-s9xxx-armbian/releases?per_page=30" | \
+              jq -r --arg RTK "Armbian_${SET_RELEASE}_arm64_" \
+              --arg BOARD "-trunk_" \
+              '[.[] | select(.tag_name | contains($RTK))] |
+              map(.assets[] | select(.name | contains($BOARD) and endswith(".img.gz"))) |
+              sort_by(.updated_at) | reverse | .[0] |
+              {url: .url, name: .name}')
+
+          if [[ -z "${latest_asset}" || "${latest_asset}" == "null" ]]; then
+              echo "::error::Failed to resolve a base Armbian image for release [ ${SET_RELEASE} ]"
+              exit 1
+          fi
+
+          asset_url="$(echo "${latest_asset}" | jq -r '.url')"
+          asset_name="$(echo "${latest_asset}" | jq -r '.name')"
+          echo "Downloading: ${asset_name}"
+          curl -fsSL \
+               -H "Authorization: Bearer ${GH_TOKEN}" \
+               -H "Accept: application/octet-stream" \
+               "${asset_url}" -o "build/output/images/${asset_name}"
+
+          echo "asset_name=${asset_name}" >> "${GITHUB_OUTPUT}"
+
+      - name: Rebuild Armbian with custom kernel
+        uses: ophub/amlogic-s9xxx-armbian@main
+        with:
+          build_target: armbian
+          armbian_path: build/output/images/*.img.gz
+          armbian_board: ${{ inputs.armbian_board || 's905x' }}
+          armbian_kernel: ${{ inputs.armbian_kernel || '6.12.y' }}
+          auto_kernel: true
+          kernel_repo: ${{ github.repository }}
+          kernel_usage: ${{ inputs.kernel_usage || 'stable' }}
+          armbian_fstype: ${{ inputs.armbian_fstype || 'ext4' }}
+          builder_name: ${{ inputs.builder_name || 'ophub' }}
+
+      - name: Upload Armbian image to Release
+        uses: ophub/upload-to-releases@main
+        if: ${{ env.PACKAGED_STATUS == 'success' }}
+        with:
+          tag: Armbian_${{ inputs.set_release || 'trixie' }}_arm64_wifi
+          artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
+          allow_updates: true
+          remove_artifacts: false
+          replaces_artifacts: true
+          make_latest: true
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            ### Armbian Image Information (RTL8821AU Wi-Fi driver included)
+            - Default username: `root`
+            - Default password: `1234`
+            - Install command: `armbian-install`
