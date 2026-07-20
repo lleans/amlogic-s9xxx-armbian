@@ -74,9 +74,15 @@ jobs:
           kernel_toolchain: ${{ inputs.kernel_toolchain || 'gcc' }}
 
       - name: Inject RTL8821AU driver into kernel modules package
+        env:
+          # The compile action runs from its own checkout (github.action_path),
+          # not this repo's checkout - PACKAGED_OUTPUTPATH is the absolute path
+          # it exports for the real output directory. A hardcoded relative
+          # "compile-kernel/output" would silently point at the wrong tree.
+          KERNEL_OUTPUT_DIR: ${{ env.PACKAGED_OUTPUTPATH }}
         run: |
           chmod +x driver-injection/8821au/inject-driver.sh
-          KERNEL_OUTPUT_DIR=compile-kernel/output driver-injection/8821au/inject-driver.sh
+          driver-injection/8821au/inject-driver.sh
 
       - name: Upload kernel packages to Release
         uses: ophub/upload-to-releases@main

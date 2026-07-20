@@ -69,3 +69,31 @@ repackage_modules_tarball() {
     local extract_root="${1}" kernel_name="${2}" tarball_path="${3}"
     tar -czf "${tarball_path}" -C "${extract_root}/lib/modules" "${kernel_name}"
 }
+
+# extract_combined_tarball <tarball_path> <dest_dir>
+# The published kernel artifact is a single "<kernel_version>.tar.gz" that
+# wraps a "<kernel_version>/" directory containing boot-/modules-/header-/
+# dtb-*.tar.gz and a sha256sums file (see compile_selection() in
+# armbian_compile_kernel.sh, which tars ${kernel_version}/ from inside
+# ${output_path} right before clean_tmp() deletes the loose directory).
+extract_combined_tarball() {
+    local tarball="${1}" dest="${2}"
+    mkdir -p "${dest}"
+    tar -xzf "${tarball}" -C "${dest}"
+}
+
+# regenerate_combined_sha256sums <version_dir>
+# Matches upstream's own convention exactly: sha256sums covers every
+# *.tar.gz sitting directly inside the version directory.
+regenerate_combined_sha256sums() {
+    local version_dir="${1}"
+    ( cd "${version_dir}" && sha256sum ./*.tar.gz > sha256sums )
+}
+
+# repackage_combined_tarball <parent_dir> <kernel_name> <tarball_path>
+# Re-tars parent_dir/kernel_name back into tarball_path, matching upstream's
+# "cd ${output_path}; tar -czf ${kernel_version}.tar.gz ${kernel_version}".
+repackage_combined_tarball() {
+    local parent_dir="${1}" kernel_name="${2}" tarball_path="${3}"
+    tar -czf "${tarball_path}" -C "${parent_dir}" "${kernel_name}"
+}

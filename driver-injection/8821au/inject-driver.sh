@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
 # driver-injection/8821au/inject-driver.sh
 #
-# Bakes the RTL8821AU Wi-Fi driver into the kernel modules package produced
-# by "ophub/amlogic-s9xxx-armbian@main" (build_target: kernel). Run this as
-# a step immediately after that action, before uploading the kernel
-# packages to Releases.
+# Bakes the RTL8821AU Wi-Fi driver into the kernel package produced by
+# "ophub/amlogic-s9xxx-armbian@main" (build_target: kernel). Run this as a
+# step immediately after that action, before uploading to Releases.
+#
+# The action publishes one "<kernel_version>.tar.gz" per compiled kernel,
+# wrapping a "<kernel_version>/" directory that holds the individual
+# boot-/modules-/header-/dtb-*.tar.gz files plus a sha256sums file (see
+# compile_selection() in armbian_compile_kernel.sh). This script unwraps
+# that combined tarball, injects the driver into the nested modules
+# tarball, regenerates sha256sums, and re-wraps it in place.
 #
 # Env vars:
-#   KERNEL_OUTPUT_DIR  Directory containing header-*.tar.gz / modules-*.tar.gz
-#                       (default: compile-kernel/output)
+#   KERNEL_OUTPUT_DIR  Directory containing "<kernel_version>.tar.gz" files.
+#                       Must be set to the action's own
+#                       ${{ env.PACKAGED_OUTPUTPATH }} (an absolute path
+#                       under github.action_path, NOT github.workspace -
+#                       the compile happens inside the action's own
+#                       checkout, not the caller's).
 #   DRIVER_REPO         Driver source repository
 #   TOOLCHAIN_URL       Cross toolchain tarball URL
 #   TOOLCHAIN_DIR       Where to cache/extract the toolchain
@@ -83,16 +93,25 @@ build_driver() {
     cp -f "${src_dir}/8821au.ko" "${out_ko}"
 }
 
-# process_kernel <modules_tarball_path>
+# process_kernel <combined_tarball_path>
 process_kernel() {
-    local modules_tarball="${1}"
-    local kernel_name header_tarball extract_dir header_dir ko_path
+    local combined_tarball="${1}"
+    local kernel_name unwrap_dir version_dir modules_tarball header_tarball
+    local extract_dir header_dir ko_path
 
-    kernel_name="$(kernel_name_from_modules_tarball "${modules_tarball}")"
-    header_tarball="$(dirname "${modules_tarball}")/header-${kernel_name}.tar.gz"
-    [[ -f "${header_tarball}" ]] || die "No matching header tarball for ${kernel_name} (expected ${header_tarball})"
-
+    kernel_name="$(basename "${combined_tarball}" .tar.gz)"
     log "Processing kernel ${kernel_name}"
+
+    unwrap_dir="${WORK_DIR}/${kernel_name}/unwrap"
+    extract_combined_tarball "${combined_tarball}" "${unwrap_dir}"
+
+    version_dir="${unwrap_dir}/${kernel_name}"
+    [[ -d "${version_dir}" ]] || die "Combined tarball ${combined_tarball} did not contain a ${kernel_name}/ directory"
+
+    modules_tarball="${version_dir}/modules-${kernel_name}.tar.gz"
+    header_tarball="${version_dir}/header-${kernel_name}.tar.gz"
+    [[ -f "${modules_tarball}" ]] || die "No modules-${kernel_name}.tar.gz inside ${combined_tarball}"
+    [[ -f "${header_tarball}" ]] || die "No header-${kernel_name}.tar.gz inside ${combined_tarball}"
 
     extract_dir="${WORK_DIR}/${kernel_name}/modules"
     header_dir="${WORK_DIR}/${kernel_name}/header"
@@ -106,20 +125,24 @@ process_kernel() {
     refresh_depmod "${extract_dir}" "${kernel_name}"
     repackage_modules_tarball "${extract_dir}" "${kernel_name}" "${modules_tarball}"
 
-    log "Injected 8821au driver into ${modules_tarball}"
+    regenerate_combined_sha256sums "${version_dir}"
+    repackage_combined_tarball "${unwrap_dir}" "${kernel_name}" "${combined_tarball}"
+
+    log "Injected 8821au driver into ${combined_tarball}"
 }
 
 main() {
     [[ -d "${KERNEL_OUTPUT_DIR}" ]] || die "KERNEL_OUTPUT_DIR not found: ${KERNEL_OUTPUT_DIR}"
 
     local found=0
-    for modules_tarball in "${KERNEL_OUTPUT_DIR}"/modules-*.tar.gz; do
-        [[ -f "${modules_tarball}" ]] || continue
+    for combined_tarball in "${KERNEL_OUTPUT_DIR}"/*.tar.gz; do
+        [[ -f "${combined_tarball}" ]] || continue
+        [[ "$(basename "${combined_tarball}")" == deb-* ]] && continue
         found=1
-        process_kernel "${modules_tarball}"
+        process_kernel "${combined_tarball}"
     done
 
-    [[ "${found}" -eq 1 ]] || die "No modules-*.tar.gz found in ${KERNEL_OUTPUT_DIR}"
+    [[ "${found}" -eq 1 ]] || die "No <kernel_version>.tar.gz found in ${KERNEL_OUTPUT_DIR}"
 }
 
 main "$@"

@@ -70,4 +70,29 @@ repackage_modules_tarball "${EXTRACT_ROOT}" "${KERNEL_NAME}" "${REPACKAGED}"
 tar -tzf "${REPACKAGED}" | grep -q "^${KERNEL_NAME}/kernel/drivers/net/wireless/8821au.ko$" || { echo "FAIL: repackaged tarball missing injected module at expected path"; exit 1; }
 echo "  ok"
 
+echo "test: extract_combined_tarball unwraps the published <kernel_version>.tar.gz"
+COMBINED_SRC="${FIXTURE_DIR}/combined-src/${KERNEL_NAME}"
+mkdir -p "${COMBINED_SRC}"
+cp "${FIXTURE_DIR}/modules-${KERNEL_NAME}.tar.gz" "${FIXTURE_DIR}/header-${KERNEL_NAME}.tar.gz" "${COMBINED_SRC}/"
+( cd "${COMBINED_SRC}" && sha256sum ./*.tar.gz > sha256sums )
+( cd "${FIXTURE_DIR}/combined-src" && tar -czf "${FIXTURE_DIR}/${KERNEL_NAME}.tar.gz" "${KERNEL_NAME}" )
+
+COMBINED_UNWRAP="${FIXTURE_DIR}/combined-unwrap"
+extract_combined_tarball "${FIXTURE_DIR}/${KERNEL_NAME}.tar.gz" "${COMBINED_UNWRAP}"
+[[ -f "${COMBINED_UNWRAP}/${KERNEL_NAME}/modules-${KERNEL_NAME}.tar.gz" ]] || { echo "FAIL: modules tarball missing after combined-tarball extraction"; exit 1; }
+[[ -f "${COMBINED_UNWRAP}/${KERNEL_NAME}/sha256sums" ]] || { echo "FAIL: sha256sums missing after combined-tarball extraction"; exit 1; }
+echo "  ok"
+
+echo "test: regenerate_combined_sha256sums recomputes sums matching the directory contents"
+echo "tampered" >> "${COMBINED_UNWRAP}/${KERNEL_NAME}/modules-${KERNEL_NAME}.tar.gz" 2>/dev/null || true
+regenerate_combined_sha256sums "${COMBINED_UNWRAP}/${KERNEL_NAME}"
+( cd "${COMBINED_UNWRAP}/${KERNEL_NAME}" && sha256sum -c sha256sums --quiet ) || { echo "FAIL: regenerated sha256sums do not verify"; exit 1; }
+echo "  ok"
+
+echo "test: repackage_combined_tarball rebuilds a tarball rooted at the kernel version"
+REPACKAGED_COMBINED="${FIXTURE_DIR}/${KERNEL_NAME}.repackaged.tar.gz"
+repackage_combined_tarball "${COMBINED_UNWRAP}" "${KERNEL_NAME}" "${REPACKAGED_COMBINED}"
+tar -tzf "${REPACKAGED_COMBINED}" | grep -q "^${KERNEL_NAME}/modules-${KERNEL_NAME}.tar.gz$" || { echo "FAIL: repackaged combined tarball missing nested modules tarball"; exit 1; }
+echo "  ok"
+
 echo "All package.sh tests passed."
