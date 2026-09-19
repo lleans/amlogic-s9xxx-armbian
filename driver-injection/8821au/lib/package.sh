@@ -17,6 +17,34 @@ kernel_name_from_modules_tarball() {
     echo "${base}"
 }
 
+# find_one_tarball <dir> <prefix>
+# Prints the single <prefix>-*.tar.gz in dir. The published artifacts carry the
+# kernel's custom signature (modules-6.12.110-ophub.tar.gz), so the exact name
+# cannot be derived from the version directory alone - glob instead.
+# Returns non-zero when there is not exactly one match.
+find_one_tarball() {
+    local dir="${1}" prefix="${2}"
+    local matches=()
+    local f
+    for f in "${dir}/${prefix}-"*.tar.gz; do
+        [[ -f "${f}" ]] && matches+=("${f}")
+    done
+    [[ "${#matches[@]}" -eq 1 ]] || return 1
+    echo "${matches[0]}"
+}
+
+# modules_tarball_root <tarball_path>
+# Prints the top-level directory name inside a modules-*.tar.gz. That directory
+# is the signed kernel version (6.12.110-ophub) and is what depmod, the module
+# install path and the repack must all agree on.
+modules_tarball_root() {
+    local tarball="${1}" root
+    root="$(tar -tzf "${tarball}" 2>/dev/null | head -n 1)"
+    root="${root%%/*}"
+    [[ -n "${root}" ]] || return 1
+    echo "${root}"
+}
+
 # extract_modules_tarball <tarball_path> <dest_dir>
 # modules-*.tar.gz is packed from inside ".../modules/lib/modules" (its root
 # IS the kernel version directory - see packit_kernel() in

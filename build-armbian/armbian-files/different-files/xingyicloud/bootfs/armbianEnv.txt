@@ -1,0 +1,11 @@
+verbosity=8
+bootlogo=false
+fdtfile=rockchip/rk3528-xingyicloud.dtb
+rootdev=/dev/mmcblk0p2
+rootfstype=ext4
+rootflags=rw,errors=remount-ro
+extraargs=rw rootwait
+extraboardargs=net.ifnames=0 max_loop=128
+console=serial
+earlycon=on
+overlay_prefix=rk3528

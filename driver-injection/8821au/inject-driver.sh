@@ -39,7 +39,11 @@ DRY_RUN="${DRY_RUN:-0}"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
-log() { echo "[inject-driver] $*"; }
+# log writes to stderr, not stdout. setup_toolchain() is called inside a
+# command substitution, so anything it prints to stdout is captured into the
+# variable it returns - a log line on stdout corrupts the toolchain path and
+# breaks the make invocation with a nonsense command line.
+log() { echo "[inject-driver] $*" >&2; }
 die() { echo "[inject-driver] ERROR: $*" >&2; exit 1; }
 
 setup_toolchain() {
@@ -97,7 +101,7 @@ build_driver() {
 process_kernel() {
     local combined_tarball="${1}"
     local kernel_name unwrap_dir version_dir modules_tarball header_tarball
-    local extract_dir header_dir ko_path
+    local extract_dir header_dir ko_path module_root
 
     kernel_name="$(basename "${combined_tarball}" .tar.gz)"
     log "Processing kernel ${kernel_name}"
@@ -108,10 +112,21 @@ process_kernel() {
     version_dir="${unwrap_dir}/${kernel_name}"
     [[ -d "${version_dir}" ]] || die "Combined tarball ${combined_tarball} did not contain a ${kernel_name}/ directory"
 
-    modules_tarball="${version_dir}/modules-${kernel_name}.tar.gz"
-    header_tarball="${version_dir}/header-${kernel_name}.tar.gz"
-    [[ -f "${modules_tarball}" ]] || die "No modules-${kernel_name}.tar.gz inside ${combined_tarball}"
-    [[ -f "${header_tarball}" ]] || die "No header-${kernel_name}.tar.gz inside ${combined_tarball}"
+    # The nested tarballs carry the kernel's custom signature (e.g.
+    # modules-6.12.110-ophub.tar.gz), which is NOT the outer version
+    # directory's name (6.12.110). Glob for them rather than assuming the
+    # unsuffixed form.
+    modules_tarball="$(find_one_tarball "${version_dir}" modules)" ||
+        die "No modules-*.tar.gz inside ${combined_tarball}"
+    header_tarball="$(find_one_tarball "${version_dir}" header)" ||
+        die "No header-*.tar.gz inside ${combined_tarball}"
+
+    # The modules tarball's root directory is named after the signed kernel
+    # version (6.12.110-ophub), not the outer version directory. This name is
+    # what depmod, the module path and the repack all key off.
+    module_root="$(modules_tarball_root "${modules_tarball}")" ||
+        die "Could not determine the root directory of ${modules_tarball}"
+    log "Signed kernel version: ${module_root}"
 
     extract_dir="${WORK_DIR}/${kernel_name}/modules"
     header_dir="${WORK_DIR}/${kernel_name}/header"
@@ -120,10 +135,10 @@ process_kernel() {
     extract_modules_tarball "${modules_tarball}" "${extract_dir}"
     extract_header_tarball "${header_tarball}" "${header_dir}"
 
-    build_driver "${kernel_name}" "${header_dir}" "${ko_path}"
-    inject_module "${extract_dir}" "${kernel_name}" "${ko_path}"
-    refresh_depmod "${extract_dir}" "${kernel_name}"
-    repackage_modules_tarball "${extract_dir}" "${kernel_name}" "${modules_tarball}"
+    build_driver "${module_root}" "${header_dir}" "${ko_path}"
+    inject_module "${extract_dir}" "${module_root}" "${ko_path}"
+    refresh_depmod "${extract_dir}" "${module_root}"
+    repackage_modules_tarball "${extract_dir}" "${module_root}" "${modules_tarball}"
 
     regenerate_combined_sha256sums "${version_dir}"
     repackage_combined_tarball "${unwrap_dir}" "${kernel_name}" "${combined_tarball}"

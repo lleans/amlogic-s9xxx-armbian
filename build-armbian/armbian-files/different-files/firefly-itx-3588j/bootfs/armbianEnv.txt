@@ -2,6 +2,7 @@ verbosity=1
 bootlogo=false
 console=both
 extraargs=cma=256M
+extraboardargs=net.ifnames=0 max_loop=128
 overlay_prefix=rockchip-rk3588
 fdtfile=rockchip/rk3588-firefly-itx-3588j.dtb
 rootdev=/dev/mmcblk0p2

@@ -28,7 +28,7 @@ build_path="${current_path}/build"
 image_path="${build_path}/output/images"
 cache_path="${build_path}/cache/rootfs"
 tmp_rootfs="${image_path}/tmp_rootfs"
-
+common_files="${current_path}/build-armbian/armbian-files/common-files"
 #
 # Set font color
 STEPS="[\033[95m STEPS \033[0m]"
@@ -211,35 +211,66 @@ EOF
 
             # Add uInitrd generation script
             sudo mkdir -p etc/initramfs/post-update.d/
-            sudo chown root:root etc/initramfs/post-update.d/
-            sudo tee etc/initramfs/post-update.d/99-uboot >/dev/null <<'EOF'
-#!/bin/bash -e
-
-tempname="/boot/uInitrd-$1"
-echo "update-initramfs: Armbian: Converting to u-boot format: ${tempname}" >&2
-mkimage -A arm64 -O linux -T ramdisk -C gzip -n uInitrd -d $2 $tempname
-
-echo "update-initramfs: Armbian: Symlinking ${tempname} to /boot/uInitrd" >&2
-ln -sfv $(basename $tempname) /boot/uInitrd || {
-        echo "update-initramfs: Symlink failed, moving ${tempname} to /boot/uInitrd" >&2
-        mv -v $tempname /boot/uInitrd
-}
-
-echo "update-initramfs: Armbian: done." >&2
-
-exit 0
-
-EOF
-            sudo chmod +x etc/initramfs/post-update.d/99-uboot
+            sudo cp -f "${common_files}/etc/initramfs/post-update.d/99-uboot" etc/initramfs/post-update.d/99-uboot
             [[ "${?}" == "0" ]] && echo -e "${INFO} 05.02. uInitrd generation script added successfully." || error_msg "05.02. Failed to adjust uInitrd!"
+            sudo chmod +x etc/initramfs/post-update.d/99-uboot
+            sudo chown root:root etc/initramfs/post-update.d/99-uboot
         else
             echo -e "${NOTE} 05. Skipping armbian-kernel script addition."
         fi
 
-        # Compress the rootfs file
+        # 05.03. Add EDID initramfs hook
+        sudo mkdir -p etc/initramfs-tools/hooks/
+        sudo cp -f "${common_files}/etc/initramfs-tools/hooks/edid" etc/initramfs-tools/hooks/edid
+        [[ "${?}" == "0" ]] && echo -e "${INFO} 05.03. EDID initramfs hook added successfully." || error_msg "05.03. Failed to add EDID initramfs hook!"
+        sudo chmod +x etc/initramfs-tools/hooks/edid
+        sudo chown root:root etc/initramfs-tools/hooks/edid
+
+        # 05.04. Add EDID firmware blobs (bundled into the initramfs by the hook above)
+        edid_tmp="$(mktemp -d)"
+        git clone -q --depth 1 --filter=blob:none --sparse https://github.com/ophub/firmware "${edid_tmp}/fw" 2>/dev/null
+        git -C "${edid_tmp}/fw" sparse-checkout set firmware/edid >/dev/null 2>&1
+        [[ -d "${edid_tmp}/fw/firmware/edid" ]] && {
+            sudo mkdir -p usr/lib/firmware/edid
+            sudo cp -af "${edid_tmp}/fw/firmware/edid/." usr/lib/firmware/edid/
+            sudo chown -R root:root usr/lib/firmware/edid
+            echo -e "${INFO} 05.04. EDID firmware blobs added successfully."
+        } || error_msg "05.04. Failed to add EDID firmware blobs!"
+        rm -rf "${edid_tmp}"
+
+        # 06. Ensure the standard PATH block exists in /etc/profile.
+        # Some upstream rootfs ship an /etc/profile missing this section, which leaves root
+        # logins without /sbin & /usr/sbin in PATH (e.g. armbian-apt not found).
+        # Only prepend when the root sbin PATH is not already set (idempotent).
+        [[ -f "etc/profile" ]] && ! sudo grep -q 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"' etc/profile && {
+            new_profile="$(sudo awk '
+            BEGIN {
+                block = "# Set the standard PATH (root gets sbin, others get games)\n" \
+                        "if [ \"$(id -u)\" -eq 0 ]; then\n" \
+                        "  PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"\n" \
+                        "else\n" \
+                        "  PATH=\"/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games\"\n" \
+                        "fi\n" \
+                        "export PATH\n"
+                inserted = 0
+            }
+            # After the 2nd header comment line, emit the block once
+            !inserted && /^# and Bourne compatible shells/ { print; printf "\n%s", block; inserted = 1; next }
+            { print }
+            END { if (!inserted) printf "%s", block }
+        ' etc/profile)" &&
+                [[ -n "${new_profile}" ]] &&
+                printf '%s\n' "${new_profile}" | sudo tee etc/profile.new >/dev/null &&
+                sudo chown root:root etc/profile.new &&
+                sudo chmod 644 etc/profile.new &&
+                sudo mv -f etc/profile.new etc/profile &&
+                echo -e "${INFO} 06. Added missing standard PATH block to /etc/profile."
+        }
+
+        # 07. Compress the rootfs file
         sudo tar -czf ${rootfs_save_name} *
         sudo mv -f ${rootfs_save_name} ../
-        [[ "${?}" == "0" ]] && echo -e "${INFO} 06. Armbian rootfs created successfully." || error_msg "06. Failed to redo rootfs!"
+        [[ "${?}" == "0" ]] && echo -e "${INFO} 07. Armbian rootfs created successfully." || error_msg "07. Failed to redo rootfs!"
     else
         error_msg "02. Failed to find rootfs file!"
     fi
@@ -249,21 +280,21 @@ EOF
         cd ${image_path}/
         mv -f ${image_file} ${image_save_name}
         pigz -qf *.img || gzip -qf *.img
-        [[ "${?}" == "0" ]] && echo -e "${INFO} 07. Armbian image renamed successfully." || error_msg "07. Failed to rename the image!"
+        [[ "${?}" == "0" ]] && echo -e "${INFO} 08. Armbian image renamed successfully." || error_msg "08. Failed to rename the image!"
     else
-        error_msg "07. Failed to find Armbian image!"
+        error_msg "08. Failed to find Armbian image!"
     fi
 
     # Clean up files in the image directory
     cd ${image_path}/
     sudo rm -rf $(ls . | grep -vE ".img.gz|.tar.gz" | xargs) 2>/dev/null
     #for file in *; do [[ ! -d "${file}" ]] && sha256sum "${file}" >"${file}.sha"; done
-    [[ "${?}" == "0" ]] && echo -e "${INFO} 08. The files in the current directory:\n$(ls -lh .)" || error_msg "08. Failed to clean up!"
+    [[ "${?}" == "0" ]] && echo -e "${INFO} 09. The files in the current directory:\n$(ls -lh .)" || error_msg "09. Failed to clean up!"
 
     # Delete Armbian build source codes and temporary files
     cd ${build_path}/
     sudo rm -rf $(ls . | grep -v "^output$" | xargs)
-    [[ "${?}" == "0" ]] && echo -e "${INFO} 09. Armbian source code cleaned up successfully." || error_msg "09. Failed to clean up!"
+    [[ "${?}" == "0" ]] && echo -e "${INFO} 10. Armbian source code cleaned up successfully." || error_msg "10. Failed to clean up!"
 
     cd ${current_path}/
     sync && sleep 3
