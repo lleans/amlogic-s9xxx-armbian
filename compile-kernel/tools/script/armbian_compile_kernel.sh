@@ -292,6 +292,7 @@ init_var() {
     done
 
     # Receive the value entered by the [ -r ] parameter
+    # Example: owner/repo@branch, owner@branch, owner/repo, owner, etc.
     input_r_value="${repo_owner//https\:\/\/github\.com\//}"
     code_owner="$(echo "${input_r_value}" | awk -F '@' '{print $1}' | awk -F '/' '{print $1}')"
     code_repo="$(echo "${input_r_value}" | awk -F '@' '{print $1}' | awk -F '/' '{print $2}')"
@@ -1440,13 +1441,30 @@ compile_selection() {
     # Add sha256sum integrity verification file
     sha256sum *.tar.gz >sha256sums 2>/dev/null || true
 
-    cd ${output_path}/deb-${kernel_version}
+    cd ${output_path}/deb-${kernel_version} || return 1
     # Cleanup temporary build directories, keep only .deb files
-    find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
+    find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} +
     # Add sha256sum integrity verification file
     sha256sum *.deb >sha256sums 2>/dev/null || true
 
     cd ${output_path}
+
+    # Rename kernel version directory and deb package directory if the code branch is different from the repo branch
+    if [[ "${code_branch}" != "${repo_branch}" ]]; then
+        # Rename kernel version directory
+        rm -rf ${kernel_version}${custom_name}
+        mv -f ${kernel_version} ${kernel_version}${custom_name}
+        echo -e "${INFO} Renamed kernel version directory to [ ${kernel_version}${custom_name} ]"
+
+        # Rename deb package directory
+        rm -rf deb-${kernel_version}${custom_name}
+        mv -f deb-${kernel_version} deb-${kernel_version}${custom_name}
+        echo -e "${INFO} Renamed deb package directory to [ deb-${kernel_version}${custom_name} ]"
+
+        # Update kernel_version variable to include the code branch for packaging
+        kernel_version="${kernel_version}${custom_name}"
+    fi
+
     # Package all kernel tar files into a single tar.gz file
     tar -czf ${kernel_version}.tar.gz ${kernel_version}
     echo -e "${SUCCESS} All kernel tar packages packaged successfully."
@@ -1541,6 +1559,8 @@ toolchain_check
 # Show compile settings
 echo -e "${INFO} Kernel compilation toolchain: [ ${toolchain_name} ]"
 echo -e "${INFO} Kernel source: [ ${code_owner} ]"
+echo -e "${INFO} Kernel repo: [ ${linux_repo} ]"
+echo -e "${INFO} Kernel branch: [ ${code_branch} ]"
 echo -e "${INFO} Kernel patch: [ ${auto_patch} ]"
 echo -e "${INFO} Kernel arch: [ ${SRC_ARCH} ]"
 echo -e "${INFO} Kernel package: [ ${package_list} ]"

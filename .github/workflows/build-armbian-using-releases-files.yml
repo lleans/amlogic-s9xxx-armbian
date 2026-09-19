@@ -36,7 +36,7 @@ on:
           - range100_150
           - last50
           - a311d-oes_s922x-oes-plus_wxy-oect
-          - nsy-g16-plus_nsy-g68-plus_bdy-g18-pro
+          - nsy-g16-plus_nsy-g68-plus_bdy-g18-pro_bdy-g98
           - s905d_s905x3_s912_s922x-ct2000
           - a311d
           - a311d-oes
@@ -47,6 +47,7 @@ on:
           - aio-3399c-ai
           - bdkj-bd-one
           - bdy-g18-pro
+          - bdy-g98
           - beikeyun
           - boca-tcn100
           - boca-tcn200
@@ -66,6 +67,7 @@ on:
           - eaidk-610
           - easepi-a2
           - easepi-r2
+          - elfboard-elf2
           - emb3531
           - fine3399
           - firefly-itx-3588j
@@ -76,6 +78,8 @@ on:
           - gea-6319
           - gzpeite-p01
           - h28k
+          - h339pc
+          - h618-ai-douhe
           - h618-devboard
           - h66k
           - h68k
@@ -84,6 +88,7 @@ on:
           - h88k-v3
           - h96-max-m2
           - hk1-rbox-k8s
+          - houzzkit-f1
           - hs530r
           - ht2
           - hugsun-x99
@@ -121,6 +126,7 @@ on:
           - orangepi-5b
           - orangepi-zero3
           - painet-p3
+          - painet-p5
           - panther-x2
           - photonicat
           - r66s
@@ -156,11 +162,13 @@ on:
           - s905l3a
           - s905l3a-cm311
           - s905l3a-m401a
+          - s905l3a-w103d
           - s905l3b
           - s905l3b-e900v21d
           - s905l3b-e900v22d
           - s905l3b-e900v22e
           - s905l3b-ip103h
+          - s905l3b-m302a
           - s905l3b-rg020et-ca
           - s905l3b-unt403a
           - s905lb-ipbs9505
@@ -178,6 +186,7 @@ on:
           - s905x-tbee
           - s905x-tx9
           - s905x2
+          - s905x2-b860h-v5
           - s905x2-km3
           - s905x2-x96max-2g
           - s905x2-hg680fj
@@ -233,6 +242,7 @@ on:
           - sv-33a6x-vpu
           - swan1-w28
           - sw799
+          - sz3390
           - taram
           - tanix-tx6
           - tb-ls3399
@@ -245,9 +255,14 @@ on:
           - wocyber-a3
           - wxy-oect
           - wxy-oect-mod
+          - x88pro13
           - x88pro20
           - x98h
           - xiaobao
+          - xingyicloud
+          - youyeetoo-r1-v3
+          - youyeetoo-yy3568
+          - youyeetoo-yy3588
           - yskj
           - zcube1-max
           - zk-r39a

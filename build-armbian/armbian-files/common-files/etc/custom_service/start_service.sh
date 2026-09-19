@@ -70,6 +70,49 @@ if [[ "${FDTFILE}" == "meson-sm1-skyworth-lb2004-a4091.dtb" ]]; then
     log_message "Attempted to load btmtksdio module for Tencent-Aurora-3Pro."
 fi
 
+# For M401A/UNT403A/B863AV3.2-M (s905l3a) box: enable 3.5mm analog audio
+if [[ "${FDTFILE}" == "meson-g12a-s905l3a-m401a.dtb" ]]; then
+    (
+        # Wait (at most ~15s) for the sound card to be registered
+        audio_card=""
+        for _ in $(seq 1 15); do
+            if [[ -d "/proc/asound/card0" ]]; then
+                audio_card="0"
+                break
+            fi
+            sleep 1
+        done
+        if [[ -z "${audio_card}" ]]; then
+            log_message "M401A analog audio: no sound card found, skipped."
+            exit 0
+        fi
+
+        # Route and unmute the analog path (best effort, never fail the boot)
+        if command -v amixer >/dev/null 2>&1; then
+            amixer -c "${audio_card}" sset 'TOACODEC OUT EN' on >/dev/null 2>&1 || true
+            amixer -c "${audio_card}" sset 'TOACODEC SRC' 'I2S B' >/dev/null 2>&1 || true
+            amixer -c "${audio_card}" sset 'ACODEC Playback Switch' on >/dev/null 2>&1 || true
+            amixer -c "${audio_card}" sset 'ACODEC' 85% >/dev/null 2>&1 || true
+            # Persist mixer state so alsactl restore can re-apply it later
+            alsactl store "${audio_card}" >/dev/null 2>&1 || true
+        else
+            log_message "M401A analog audio: amixer not found, mixer setup skipped."
+        fi
+
+        # Release the hardware mute GPIO (gpiochip0 line2). Only touch it when
+        # line 2 is free, in case a board sharing this dtb uses it differently.
+        if command -v gpioset >/dev/null 2>&1; then
+            gpio_line_info="$(gpioinfo 0 2>/dev/null | grep -E '^[[:space:]]*line[[:space:]]+2:' | head -n1 || true)"
+            if [[ -n "${gpio_line_info}" && "${gpio_line_info}" == *"unnamed"* && "${gpio_line_info}" == *"unused"* ]]; then
+                gpioset -s 1 -m time 0 2=0 >/dev/null 2>&1 || true
+            else
+                log_message "M401A analog audio: gpiochip0 line2 unavailable or in use (${gpio_line_info:-not found}), GPIO unmute skipped."
+            fi
+        fi
+    ) &
+    log_message "3.5mm analog audio setup scheduled for M401A."
+fi
+
 # For swan1-w28(rk3568) board: USB power and switch control
 if [[ "${FDTFILE}" == "rk3568-swan1-w28.dtb" ]]; then
     (
@@ -150,6 +193,17 @@ if [[ "${FDTFILE}" =~ ^(rk3568-nsy-g16-plus\.dtb|rk3568-nsy-g68-plus\.dtb|rk3568
         fi
     ) &
     log_message "Network optimizations for ${FDTFILE} applied."
+fi
+
+# For bdy-g98(rk3588) board: the two 2.5G PCIe NICs (RTL8125/8126) may ship
+# with a blank config EEPROM, in which case the driver falls back to a random
+# MAC on every boot. The script derives a stable per-unit MAC and persists it
+# via a .link file (applied by udev from the next boot on), and also sets it
+# immediately so the very first boot is covered. Units with a factory MAC are
+# left untouched.
+if [[ "${FDTFILE}" == "rk3588-bdy-g98.dtb" && -x "/usr/local/sbin/g98-nic-mac-fix.sh" ]]; then
+    /usr/local/sbin/g98-nic-mac-fix.sh >>"${custom_log}" 2>&1
+    log_message "G98 2.5G NIC MAC fix executed."
 fi
 
 # General System Services
