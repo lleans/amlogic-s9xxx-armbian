@@ -73,7 +73,10 @@ env:
 jobs:
   build:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-24.04
+    # The rebuild action pulls ophub/armbian-<release>:arm64, which only has
+    # an arm64 manifest. A native arm64 runner is required, matching the
+    # upstream build-armbian-using-official-image.yml workflow.
+    runs-on: ubuntu-26.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v6
