@@ -95,4 +95,36 @@ repackage_combined_tarball "${COMBINED_UNWRAP}" "${KERNEL_NAME}" "${REPACKAGED_C
 tar -tzf "${REPACKAGED_COMBINED}" | grep -q "^${KERNEL_NAME}/modules-${KERNEL_NAME}.tar.gz$" || { echo "FAIL: repackaged combined tarball missing nested modules tarball"; exit 1; }
 echo "  ok"
 
+# Real published artifacts name the nested tarballs after the kernel's custom
+# signature (modules-6.12.110-ophub.tar.gz) and root them at that same signed
+# version (6.12.110-ophub/), neither of which matches the outer version
+# directory (6.12.110). Getting this wrong broke the production injection step.
+SIGNED_NAME="${KERNEL_NAME}-ophub"
+SIGNED_DIR="${FIXTURE_DIR}/signed-src"
+SIGNED_TARBALL_DIR="${FIXTURE_DIR}/signed-tarballs"
+rm -rf "${SIGNED_DIR}" "${SIGNED_TARBALL_DIR}"
+mkdir -p "${SIGNED_DIR}/${SIGNED_NAME}/kernel/drivers/net/wifi" "${SIGNED_TARBALL_DIR}"
+echo "existing module" > "${SIGNED_DIR}/${SIGNED_NAME}/kernel/drivers/net/wifi/placeholder.ko"
+tar -czf "${SIGNED_TARBALL_DIR}/modules-${SIGNED_NAME}.tar.gz" -C "${SIGNED_DIR}" "${SIGNED_NAME}"
+tar -czf "${SIGNED_TARBALL_DIR}/header-${SIGNED_NAME}.tar.gz" -C "${FAKE_HEADER_SRC}" .
+
+echo "test: find_one_tarball locates a signature-suffixed tarball"
+FOUND_MODULES="$(find_one_tarball "${SIGNED_TARBALL_DIR}" "modules")" || true
+[[ -n "${FOUND_MODULES}" ]] || { echo "FAIL: find_one_tarball found nothing for the signed modules tarball"; exit 1; }
+[[ "$(basename "${FOUND_MODULES}")" == "modules-${SIGNED_NAME}.tar.gz" ]] || { echo "FAIL: wrong match: ${FOUND_MODULES}"; exit 1; }
+echo "  ok"
+
+echo "test: find_one_tarball fails when no match exists"
+if find_one_tarball "${SIGNED_TARBALL_DIR}" "nonexistent-prefix" >/dev/null 2>&1; then
+    echo "FAIL: expected non-zero when no tarball matches"
+    exit 1
+fi
+echo "  ok"
+
+echo "test: modules_tarball_root reports the signed version, not the outer one"
+ROOT_NAME="$(modules_tarball_root "${SIGNED_TARBALL_DIR}/modules-${SIGNED_NAME}.tar.gz")"
+[[ "${ROOT_NAME}" == "${SIGNED_NAME}" ]] || { echo "FAIL: expected ${SIGNED_NAME}, got ${ROOT_NAME}"; exit 1; }
+[[ "${ROOT_NAME}" != "${KERNEL_NAME}" ]] || { echo "FAIL: root should differ from the outer version"; exit 1; }
+echo "  ok"
+
 echo "All package.sh tests passed."
