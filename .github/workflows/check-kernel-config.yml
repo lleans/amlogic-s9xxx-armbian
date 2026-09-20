@@ -1,0 +1,41 @@
+#==========================================================================
+# Description: Verify the vendored kernel config in kernel-config/ still
+# matches ophub upstream plus the local.conf overrides.
+#
+# kernel-config/ is a full copy of ophub's config-6.18 because the compile
+# action replaces the config directory rather than merging it. When upstream
+# regenerates theirs, our copy silently goes stale and the kernel build keeps
+# using the old config - which would quietly drop whatever upstream fixed.
+# This fails fast instead.
+#
+# Fix when it fails:  bash kernel-config/sync.sh   (then commit the result)
+#==========================================================================
+
+name: Check kernel config sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, a few hours before the Wi-Fi kernel build (Sun 18:00 UTC).
+    - cron: "23 14 * * 0"
+  push:
+    paths:
+      - "kernel-config/**"
+      - ".github/workflows/check-kernel-config.yml"
+  pull_request:
+    paths:
+      - "kernel-config/**"
+      - ".github/workflows/check-kernel-config.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Verify vendored config matches upstream + local.conf
+        run: bash kernel-config/sync.sh --check
