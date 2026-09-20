@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 # driver-injection/8821au/inject-driver.sh
 #
+# DEPRECATED as of the 6.18.y switch - not invoked by any workflow.
+#
+# Kept only for kernels <= 6.13 if that path is ever needed again. Do NOT wire
+# this back into compile-kernel-with-wifi.yml for 6.14+: the out-of-tree
+# morrownr/8821au-20210708 driver targets the pre-6.14 cfg80211 API (callbacks
+# take struct net_device * instead of struct wireless_dev *, and
+# WIPHY_FLAG_SUPPORTS_5_10_MHZ was removed), so it fails to compile. Linux 6.14+
+# ships an in-kernel rtw88_8821au covering RTL8821AU/RTL8811AU USB devices; the
+# workflow enables it with CONFIG_RTW88_8821AU=m via kernel_config: kernel-config.
+#
 # Bakes the RTL8821AU Wi-Fi driver into the kernel package produced by
 # "ophub/amlogic-s9xxx-armbian@main" (build_target: kernel). Run this as a
 # step immediately after that action, before uploading to Releases.

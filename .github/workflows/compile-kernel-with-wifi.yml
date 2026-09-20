@@ -16,9 +16,9 @@ on:
         default: "unifreq"
         type: string
       kernel_version:
-        description: "Kernel version (family, e.g. 6.12.y)."
+        description: "Kernel version family. The baked-in rtw88_8821au in-kernel driver requires Linux >= 6.14, so the kernel_config below only exists for 6.18.y. Use 6.18.y."
         required: false
-        default: "6.12.y"
+        default: "6.18.y"
         type: string
       kernel_auto:
         description: "Automatically use the latest version in the series."
@@ -118,28 +118,15 @@ jobs:
         with:
           build_target: kernel
           kernel_source: ${{ inputs.kernel_source || 'unifreq' }}
-          kernel_version: ${{ inputs.kernel_version || '6.12.y' }}
+          kernel_version: ${{ inputs.kernel_version || '6.18.y' }}
           kernel_auto: ${{ inputs.kernel_auto == false && 'false' || 'true' }}
           kernel_toolchain: ${{ inputs.kernel_toolchain || 'gcc' }}
+          # Use custom kernel config with RTW88_8821AU enabled for in-kernel driver support.
+          # The out-of-tree morrownr/8821au driver requires the pre-6.14 cfg80211 API and
+          # fails to compile on 6.14+; the in-kernel rtw88_8821au (available 6.14+) covers
+          # RTL8821AU/RTL8811AU USB devices natively.
+          kernel_config: kernel-config
           docker_hostpath: /builder
-
-      - name: Inject RTL8821AU driver into kernel modules package
-        env:
-          # The compile action runs from its own checkout (github.action_path),
-          # not this repo's checkout - PACKAGED_OUTPUTPATH is the absolute path
-          # it exports for the real output directory. A hardcoded relative
-          # "compile-kernel/output" would silently point at the wrong tree.
-          KERNEL_OUTPUT_DIR: ${{ env.PACKAGED_OUTPUTPATH }}
-          # The injector's scratch space (toolchain download + extraction, the
-          # unwrapped kernel package, the compiled module) is multi-GB. mktemp
-          # honors TMPDIR, so pointing it at the extended volume keeps that
-          # scratch off the root filesystem, which the disk step deliberately
-          # filled to within ~4GB of capacity.
-          TMPDIR: /builder/tmp
-        run: |
-          mkdir -p /builder/tmp
-          chmod +x driver-injection/8821au/inject-driver.sh
-          driver-injection/8821au/inject-driver.sh
 
       - name: Upload kernel packages to Release
         uses: ophub/upload-to-releases@main

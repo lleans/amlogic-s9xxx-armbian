@@ -27,9 +27,9 @@ on:
         default: "s905x"
         type: string
       armbian_kernel:
-        description: "Kernel version (family, e.g. 6.12.y)."
+        description: "Kernel version family. Must match the kernel built by compile-kernel-with-wifi.yml (6.18.y)."
         required: false
-        default: "6.12.y"
+        default: "6.18.y"
         type: string
       kernel_usage:
         description: "Tag suffix the custom kernel was published under."
@@ -185,7 +185,7 @@ jobs:
           build_target: armbian
           armbian_path: build/output/images/*.img.gz
           armbian_board: ${{ inputs.armbian_board || 's905x' }}
-          armbian_kernel: ${{ inputs.armbian_kernel || '6.12.y' }}
+          armbian_kernel: ${{ inputs.armbian_kernel || '6.18.y' }}
           auto_kernel: true
           kernel_repo: ${{ github.repository }}
           kernel_usage: ${{ inputs.kernel_usage || 'stable' }}
