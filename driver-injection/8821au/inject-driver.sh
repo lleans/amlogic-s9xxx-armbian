@@ -30,14 +30,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/package.sh
 source "${SCRIPT_DIR}/lib/package.sh"
 
+WORK_DIR="$(mktemp -d)"
+trap 'rm -rf "${WORK_DIR}"' EXIT
+
 KERNEL_OUTPUT_DIR="${KERNEL_OUTPUT_DIR:-compile-kernel/output}"
 DRIVER_REPO="${DRIVER_REPO:-https://github.com/morrownr/8821au-20210708}"
 TOOLCHAIN_URL="${TOOLCHAIN_URL:-https://github.com/ophub/kernel/releases/download/dev/arm-gnu-toolchain-15.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz}"
-TOOLCHAIN_DIR="${TOOLCHAIN_DIR:-/usr/local/toolchain}"
+# Default to a writable directory inside the temporary work area so the script
+# does not require root or a pre-created /usr/local/toolchain when running in a
+# container or other restricted environment.
+TOOLCHAIN_DIR="${TOOLCHAIN_DIR:-${WORK_DIR}/toolchain}"
 DRY_RUN="${DRY_RUN:-0}"
-
-WORK_DIR="$(mktemp -d)"
-trap 'rm -rf "${WORK_DIR}"' EXIT
 
 # log writes to stderr, not stdout. setup_toolchain() is called inside a
 # command substitution, so anything it prints to stdout is captured into the
