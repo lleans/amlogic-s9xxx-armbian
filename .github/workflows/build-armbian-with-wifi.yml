@@ -81,13 +81,75 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      # The two steps below are copied from upstream's
+      # build-armbian-using-releases-files.yml. An Armbian rebuild decompresses
+      # the base .img.gz, truncates a second image, loop-mounts both at once and
+      # dd's a bootloader into each; without a separate volume this exhausts the
+      # runner's root filesystem deep into the run.
+      - name: Initialize the build environment
+        id: init
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          docker rmi -f $(docker images -q) 2>/dev/null || true
+          [[ -n "${AGENT_TOOLSDIRECTORY}" ]] && sudo rm -rf "${AGENT_TOOLSDIRECTORY}"
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android 2>/dev/null
+          sudo swapoff -a
+          sudo rm -f /swapfile /mnt/swapfile
+          sudo apt-get -y update
+          sudo apt-get -y purge azure-cli ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
+          sudo apt-get -y install $(curl -fsSL https://ophub.org/ubuntu2604-build-armbian-depends)
+          sudo systemctl daemon-reload
+          sudo apt-get -y autoremove --purge
+          sudo apt-get clean
+          sudo sed -i '/NVM_DIR/d;/skel/d' /root/{.bashrc,.profile}
+          sudo rm -rf ~/{.cargo,.dotnet,.rustup}
+          sudo timedatectl set-timezone "${TZ:-Etc/UTC}"
+          sudo ntpdate ntp.ubuntu.com 0.pool.ntp.org || true
+          sudo timedatectl set-ntp true
+          date -u
+          timedatectl status || true
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Create virtual disk for extended storage
+        id: disk
+        run: |
+          # Get available space in exact GB
+          root_avail=$(df --block-size=1G / | tail -1 | awk '{print $4}')
+          root_size=$(( root_avail - 4 ))
+          [[ "${root_size}" -gt 0 ]] || { echo "Error: Insufficient space on /: ${root_avail}G available"; exit 1; }
+
+          sudo truncate -s "${root_size}"G /root.img
+          build_dev=$(sudo losetup --find --show /root.img)
+          echo "Using /: ${root_size}G"
+
+          sudo mkfs.xfs -f -i sparse=0 -b size=4096 "${build_dev}"
+          sudo mkdir -p /builder
+          sudo mount "${build_dev}" /builder
+          sudo chown -R runner:runner /builder
+          df -Th
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
       - name: Download latest Armbian base image from ophub
         id: down
+        # Run from the extended volume so the multi-GB image never touches the
+        # runner's root filesystem.
+        working-directory: /builder
+        if: ${{ steps.disk.outputs.status == 'success' && !cancelled() }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SET_RELEASE: ${{ inputs.set_release || 'trixie' }}
         run: |
-          mkdir -p build/output/images
+          armbian_buildpath="build/output/images"
+          [[ -d "${armbian_buildpath}" ]] || mkdir -p "${armbian_buildpath}"
+          # Point both the workspace's and the action's build/ at the extended
+          # volume. The action's rebuild script roots every heavy path at
+          # ${PWD}/build (armbian_outputpath, tmp_dir), so this is what moves the
+          # decompress, loop-mounts and output images off the root filesystem.
+          # These links must be created before anything makes a real build/ dir,
+          # otherwise ln -sf nests the link inside it instead of replacing it.
+          ln -sf /builder/build ${{ github.workspace }}/build
+          ln -sf /builder/build /home/runner/work/_actions/ophub/amlogic-s9xxx-armbian/main/build
 
           latest_asset=$(curl -fsSL \
               -H "Accept: application/vnd.github+json" \
@@ -111,12 +173,14 @@ jobs:
           curl -fsSL \
                -H "Authorization: Bearer ${GH_TOKEN}" \
                -H "Accept: application/octet-stream" \
-               "${asset_url}" -o "build/output/images/${asset_name}"
+               "${asset_url}" -o "${armbian_buildpath}/${asset_name}"
 
           echo "asset_name=${asset_name}" >> "${GITHUB_OUTPUT}"
+          echo "status=success" >> "${GITHUB_OUTPUT}"
 
       - name: Rebuild Armbian with custom kernel
         uses: ophub/amlogic-s9xxx-armbian@main
+        if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
         with:
           build_target: armbian
           armbian_path: build/output/images/*.img.gz
@@ -130,7 +194,7 @@ jobs:
 
       - name: Upload Armbian image to Release
         uses: ophub/upload-to-releases@main
-        if: ${{ env.PACKAGED_STATUS == 'success' }}
+        if: ${{ env.PACKAGED_STATUS == 'success' && !cancelled() }}
         with:
           tag: Armbian_${{ inputs.set_release || 'trixie' }}_arm64_wifi
           artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*

@@ -130,12 +130,20 @@ jobs:
           # it exports for the real output directory. A hardcoded relative
           # "compile-kernel/output" would silently point at the wrong tree.
           KERNEL_OUTPUT_DIR: ${{ env.PACKAGED_OUTPUTPATH }}
+          # The injector's scratch space (toolchain download + extraction, the
+          # unwrapped kernel package, the compiled module) is multi-GB. mktemp
+          # honors TMPDIR, so pointing it at the extended volume keeps that
+          # scratch off the root filesystem, which the disk step deliberately
+          # filled to within ~4GB of capacity.
+          TMPDIR: /builder/tmp
         run: |
+          mkdir -p /builder/tmp
           chmod +x driver-injection/8821au/inject-driver.sh
           driver-injection/8821au/inject-driver.sh
 
       - name: Upload kernel packages to Release
         uses: ophub/upload-to-releases@main
+        if: ${{ env.PACKAGED_STATUS == 'success' && !cancelled() }}
         with:
           tag: kernel_${{ inputs.kernel_usage || 'stable' }}
           artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
