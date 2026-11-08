@@ -45,7 +45,7 @@ trap 'rm -rf "${WORK_DIR}"' EXIT
 
 KERNEL_OUTPUT_DIR="${KERNEL_OUTPUT_DIR:-compile-kernel/output}"
 DRIVER_REPO="${DRIVER_REPO:-https://github.com/morrownr/8821au-20210708}"
-TOOLCHAIN_URL="${TOOLCHAIN_URL:-https://github.com/ophub/kernel/releases/download/dev/arm-gnu-toolchain-15.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz}"
+TOOLCHAIN_URL="${TOOLCHAIN_URL:-https://github.com/ophub/kernel/releases/download/toolchain/arm-gnu-toolchain-15.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz}"
 # Default to a writable directory inside the temporary work area so the script
 # does not require root or a pre-created /usr/local/toolchain when running in a
 # container or other restricted environment.
