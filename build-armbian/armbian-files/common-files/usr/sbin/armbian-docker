@@ -12,10 +12,12 @@
 # Copyright (C) 2021- https://github.com/unifreq/openwrt_packit
 # Copyright (C) 2021- https://github.com/ophub/amlogic-s9xxx-armbian
 #
-# Usage              : Command
-# Install Docker     : armbian-docker
-# Update  Docker     : armbian-docker update
-# Remove  Docker     : armbian-docker remove
+# Usage                   : Command
+# Install Docker          : armbian-docker
+# Update  Docker          : armbian-docker update
+# Remove  Docker          : armbian-docker remove
+# Remove Docker and data  : armbian-docker remove --purge-data
+# Help information        : armbian-docker -h
 #
 #========================= Set default parameters ==========================
 #
@@ -35,6 +37,38 @@ ERROR="[\033[91m ERROR \033[0m]"
 error_msg() {
     echo -e "${ERROR} ${1}"
     exit 1
+}
+
+# Display help information
+help_info() {
+    clear
+    cat <<EOF
+==========================================================================================================
+
+01. Install Docker:
+    Command: armbian-docker
+    Select a Docker download source (1-4), then install the Docker engine and its plugins.
+    The invoking user is added to the [ docker ] group, so Docker commands work without sudo.
+
+02. Update Docker:
+    Command: armbian-docker update
+    Upgrade only the Docker packages, the rest of the system is left untouched.
+
+03. Remove Docker:
+    Command: armbian-docker remove
+    Purge the Docker packages, but keep the data in [ /var/lib/docker ] (images, containers, volumes).
+
+04. Remove Docker and delete its data:
+    Command: armbian-docker remove --purge-data
+    Same as above, then delete [ /var/lib/docker ] and [ /etc/docker ] after typing [ YES ] to confirm.
+
+05. Script assist functions:
+    Command: armbian-docker -h
+    -h : Help    Display this help information.
+
+==========================================================================================================
+EOF
+    exit 0
 }
 
 # Check system release information
@@ -100,7 +134,8 @@ docker_install() {
     # Install GPG certificate
     rm -f /usr/share/keyrings/docker-archive-keyring.gpg
     # sudo curl -fsSL https://download.docker.com/linux/${VERSION_CODEID}/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    sudo curl -fsSL ${DOCKER_SOURCE}/${VERSION_CODEID}/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    sudo curl -fsSL ${DOCKER_SOURCE}/${VERSION_CODEID}/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg ||
+        error_msg "Failed to download the Docker GPG key from [ ${DOCKER_SOURCE} ]."
 
     # Add software source information
     rm -f /etc/apt/sources.list.d/docker.list
@@ -152,7 +187,8 @@ EOF
     sudo systemctl restart docker
 
     # Allow the current user to run Docker commands without sudo
-    sudo usermod -a -G docker $USER 2>/dev/null
+    target_user="${SUDO_USER:-${USER}}"
+    [[ -n "${target_user}" && "${target_user}" != "root" ]] && sudo usermod -a -G docker "${target_user}" 2>/dev/null
 
     sync && sleep 3
     echo -e "${SUCCESS} Docker installed successfully."
@@ -162,12 +198,15 @@ EOF
 docker_update() {
     echo -e "${STEPS} Updating Docker packages..."
 
+    # Docker must be installed before it can be updated: [ apt-get install --only-upgrade ]
+    # silently skips packages that are not installed, which would report a false success.
+    [[ -n "$(dpkg -l | awk '{print $2}' | grep -w "^docker-ce$" 2>/dev/null)" ]] ||
+        error_msg "Docker is not installed. Run [ armbian-docker ] to install it."
+
     # Update the docker package
     sudo apt-get update
-    sudo apt-get upgrade -y
-    sudo apt-get dist-upgrade -y
-    sudo apt-get --purge autoremove -y
-    sudo apt-get autoclean -y
+    # Upgrade only the Docker packages, not the whole system
+    sudo apt-get install --only-upgrade -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
     echo -e "${SUCCESS} Docker updated successfully."
     exit 0
@@ -182,10 +221,20 @@ docker_remove() {
     sudo apt-get remove --purge -y docker-ce docker-ce-cli containerd.io docker-compose* docker-ce-*
     sudo apt-get --purge autoremove -y
     sudo apt-get autoclean -y
-    #
-    sudo rm -rf /etc/docker 2>/dev/null
-    sudo rm -rf /var/lib/docker 2>/dev/null
     sudo rm -rf /var/run/docker.sock 2>/dev/null
+    # Containers, images and volumes are kept unless the user explicitly asks to delete them
+    if [[ "${1}" == "--purge-data" ]]; then
+        echo -ne "${OPTIONS} Delete ALL Docker data in [ /var/lib/docker ] and [ /etc/docker ]? Type YES to confirm: "
+        read confirm
+        if [[ "${confirm}" == "YES" ]]; then
+            sudo rm -rf /etc/docker /var/lib/docker
+            echo -e "${INFO} Docker data deleted."
+        else
+            echo -e "${INFO} Confirmation not given, Docker data kept in [ /var/lib/docker ]."
+        fi
+    else
+        echo -e "${INFO} Docker data kept in [ /var/lib/docker ]. Use [ armbian-docker remove --purge-data ] to delete it."
+    fi
 
     echo -e "${SUCCESS} Docker removed successfully."
     exit 0
@@ -197,7 +246,8 @@ echo -e "${INFO} Welcome to the Docker Management Tool."
 
 # Execute script assist functions
 case "${1}" in
-    update) docker_update ;;
-    remove) docker_remove ;;
-    *)      docker_install ;;
+    update)      docker_update ;;
+    remove)      docker_remove "${2}" ;;
+    -h | --help) help_info ;;
+    *)           docker_install ;;
 esac

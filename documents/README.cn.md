@@ -8,7 +8,7 @@ GitHub Actions 是 Microsoft 推出的一项服务，提供高性能的虚拟服
 
 - [Armbian 构建及使用方法](#armbian-构建及使用方法)
 - [目录](#目录)
-  - [1. 注册自己的 Github 的账户](#1-注册自己的-github-的账户)
+  - [1. 注册自己的 GitHub 账户](#1-注册自己的-github-账户)
   - [2. 设置隐私变量 GITHUB\_TOKEN 等](#2-设置隐私变量-github_token-等)
   - [3. Fork 仓库并设置工作流权限](#3-fork-仓库并设置工作流权限)
   - [4. 个性化 Armbian 系统定制文件说明](#4-个性化-armbian-系统定制文件说明)
@@ -16,7 +16,7 @@ GitHub Actions 是 Microsoft 推出的一项服务，提供高性能的虚拟服
     - [5.1 手动编译](#51-手动编译)
     - [5.2 定时编译](#52-定时编译)
     - [5.3 自定义默认系统配置](#53-自定义默认系统配置)
-    - [5.4 使用逻辑卷扩大 Github Actions 编译空间](#54-使用逻辑卷扩大-github-actions-编译空间)
+    - [5.4 使用逻辑卷扩大 GitHub Actions 编译空间](#54-使用逻辑卷扩大-github-actions-编译空间)
     - [5.5 制作 Armbian Docker 镜像](#55-制作-armbian-docker-镜像)
   - [6. 保存系统](#6-保存系统)
   - [7. 下载系统](#7-下载系统)
@@ -103,14 +103,14 @@ GitHub Actions 是 Microsoft 推出的一项服务，提供高性能的虚拟服
         - [12.15.3.2 备份关键分区](#121532-备份关键分区)
         - [12.15.3.3 添加特殊分区写入文件](#121533-添加特殊分区写入文件)
       - [12.15.4 添加流程控制文件](#12154-添加流程控制文件)
-    - [12.16 如何解决写入 eMMC 时 I/O 错误的问题](#1216-如何解决写入-emmc-时-io-错误的问题)
+    - [12.16 如何解决 dtb 频率导致系统无法启动或写入 eMMC 时 I/O 错误的问题](#1216-如何解决-dtb-频率导致系统无法启动或写入-emmc-时-io-错误的问题)
     - [12.17 如何解决 Bullseye 版本没有声音的问题](#1217-如何解决-bullseye-版本没有声音的问题)
     - [12.18 如何编译 boot.scr 文件](#1218-如何编译-bootscr-文件)
     - [12.19 如何开启远程桌面和修改默认端口](#1219-如何开启远程桌面和修改默认端口)
     - [12.20 TCP 拥塞控制优化方案](#1220-tcp-拥塞控制优化方案)
     - [12.21 关于 HDMI EDID 识别异常问题的解决方法](#1221-关于-hdmi-edid-识别异常问题的解决方法)
 
-## 1. 注册自己的 Github 的账户
+## 1. 注册自己的 GitHub 账户
 
 注册账户以进行后续的系统定制操作。点击 github.com 网站右上角的 `Sign up` 按钮，根据提示完成注册。
 
@@ -191,7 +191,7 @@ schedule:
 
 本地编译时通过 `-b` 参数指定，GitHub Actions 编译时通过 `armbian_board` 参数指定。`-b all` 表示构建所有 `BUILD` 为 `yes` 的设备。指定 `BOARD` 参数时，无论 `BUILD` 值为 `yes` 或 `no` 均可构建，例如：`-b r68s_s905x3-tx3_s905l3a-cm311`
 
-### 5.4 使用逻辑卷扩大 Github Actions 编译空间
+### 5.4 使用逻辑卷扩大 GitHub Actions 编译空间
 
 GitHub Actions 默认编译空间为 84G，去除系统和必要软件包后可用空间约 50G。编译全部固件时可能遇到空间不足的问题，可通过逻辑卷将编译空间扩大至约 110G。参照 [.github/workflows/build-armbian-arm64-server-image.yml](../.github/workflows/build-armbian-arm64-server-image.yml) 文件中的方法，使用以下命令创建逻辑卷，并在编译时使用逻辑卷路径。
 
@@ -270,13 +270,13 @@ Amlogic、Rockchip 和 Allwinner 的安装方法各不相同。不同设备支�
 armbian-install
 ```
 
-| 可选参数  | 默认值   | 选项     | 说明                |
-| -------  | ------- | ------  | -----------------   |
-| -m       | no      | yes/no  | 使用 Mainline u-boot |
-| -a       | yes     | yes/no  | 使用 [ampart](https://github.com/7Ji/ampart) 分区表调整工具 |
-| -l       | no      | yes/no  | List. 显示全部设备列表 |
+| 可选参数 | 默认值 | 选项 | 说明 |
+| --- | --- | --- | --- |
+| -m | no | yes/no | 使用 Mainline u-boot |
+| -a | yes | yes/no | 使用 [ampart](https://github.com/7Ji/ampart) 分区表调整工具 |
+| -l | no | yes/no | 显示全部设备列表 |
 
-举例: `armbian-install -m yes -a no`
+举例：`armbian-install -m yes -a no`
 
 ### 8.2 Rockchip 系列安装方法
 
@@ -387,7 +387,6 @@ dd if=armbian.img  of=/dev/nvme0n1  bs=1M status=progress
 - 地址 `0x00000000`, 名字 `system`, 路径选择要刷的 `Armbian.img` 系统。
 - 点击执行，等待进度条完成即可
 
-
 ### 8.3 Allwinner 系列安装方法
 
 登录 Armbian 系统 (默认用户: root, 默认密码: 1234) → 输入命令：
@@ -431,31 +430,31 @@ docker network create -d macvlan \
 
 #### 8.4.3 运行 Armbian Docker 容器
 
-以 `armbian-trixie:arm64` 镜像为例，说明如何运行 Armbian 容器。
+以 `armbian-resolute:arm64` 镜像为例，说明如何运行 Armbian 容器。
 
 ```shell
 # 以后台方式运行 Armbian 容器
 # 其中的容器名称，IP 地址，镜像版本等根据自己的实际情况修改
-docker run -itd --name=armbian-trixie \
+docker run -itd --name=armbian-resolute \
     --privileged \
     --network macvlan \
     --ip 10.1.1.15 \
-    --hostname=armbian-trixie \
+    --hostname=armbian-resolute \
     -e TZ=Asia/Shanghai \
     --restart unless-stopped \
-    ophub/armbian-trixie:arm64
+    ophub/armbian-resolute:arm64
 
 # 查看 Armbian 容器日志
-docker logs -f armbian-trixie
+docker logs -f armbian-resolute
 
 # 进入 Armbian 容器
-docker exec -it armbian-trixie bash
+docker exec -it armbian-resolute bash
 
 # 退出 Armbian 容器
 exit
 
 # 停止并删除 Armbian 容器
-docker rm -f armbian-trixie
+docker rm -f armbian-resolute
 ```
 
 ## 9. 编译 Armbian 内核
@@ -514,17 +513,15 @@ Linux 主线内核中部分驱动尚未内置，可自行编译驱动模块。�
 armbian-sync
 armbian-update -k 6.1
 
-
 # 第二步，安装编译工具
 mkdir -p /usr/local/toolchain
 cd /usr/local/toolchain
 # 下载编译工具
-wget https://github.com/ophub/kernel/releases/download/dev/arm-gnu-toolchain-15.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz
+wget https://github.com/ophub/kernel/releases/download/toolchain/arm-gnu-toolchain-15.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz
 # 解压
 tar -Jxf arm-gnu-toolchain-15.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz
 # 安装其他编译依赖包（可选项，可根据错误提示手动安装缺少项）
 armbian-kernel -u
-
 
 # 第三步，下载驱动，编译
 # 下载驱动源码
@@ -544,7 +541,6 @@ export KSRC=/usr/lib/modules/$(uname -r)/build
 export M="/root/rtl8189ES_linux"
 # 编译驱动
 make
-
 
 # 第四步，安装驱动
 sudo cp -f 8189es.ko /lib/modules/$(uname -r)/kernel/drivers/net/wireless/
@@ -583,18 +579,18 @@ cfg80211              917504  2 8189es,brcmfmac
 armbian-update
 ```
 
-| 可选参数  | 默认值        | 选项           | 说明                              |
-| -------- | ------------ | ------------- | -------------------------------- |
-| -r       | ophub/kernel | `<owner>/<repo>` | 设置从 github.com 下载内核的仓库  |
-| -u       | 自动化        | stable/flippy/beta/rk3588/rk35xx | 设置使用的内核的 [tags 后缀](https://github.com/ophub/kernel/releases) |
-| -k       | 最新版        | 内核版本       | 设置[内核版本](https://github.com/ophub/kernel/releases/tag/kernel_stable)  |
-| -b       | yes          | yes/no        | 更新内核时自动备份当前系统使用的内核    |
-| -d       | deb          | tar/deb       | 设置优先使用的内核包格式。若指定格式不存在，脚本将自动尝试另一种格式。如需编译自定义驱动推荐选择 `deb` 格式。 |
-| -m       | no           | yes/no        | 使用主线 u-boot                    |
-| -s       | 无           | 无/磁盘名称     | [SOS] 恢复 eMMC/NVMe/sdX 等磁盘中的系统内核 |
-| -h       | 无           | 无             | 查看使用帮助                       |
+| 可选参数 | 默认值 | 选项 | 说明 |
+| --- | --- | --- | --- |
+| -r | ophub/kernel | `<owner>/<repo>` | 设置从 github.com 下载内核的仓库 |
+| -u | 自动识别 | stable/flippy/beta/rk3588/rk35xx | 设置使用的内核的 [tags 后缀](https://github.com/ophub/kernel/releases) |
+| -k | 最新版 | 内核版本 | 设置[内核版本](https://github.com/ophub/kernel/releases/tag/kernel_stable) |
+| -b | yes | yes/no | 更新内核时自动备份当前使用的内核 |
+| -d | deb | tar/deb | 设置首选的内核包格式。若指定格式不存在，脚本将自动尝试另一种格式。如需编译自定义驱动，推荐使用 `deb` 格式。 |
+| -m | no | yes/no | 使用主线 u-boot |
+| -s | 无 | 无/磁盘名称 | [SOS] 恢复 eMMC/NVMe/sdX 等磁盘中的系统内核 |
+| -h | 无 | 无 | 查看使用帮助 |
 
-举例: `armbian-update -k 5.15 -u stable -d deb`
+举例：`armbian-update -k 5.15 -u stable -d deb`
 
 通过 `-k` 参数指定内核版本号时，既可精确指定版本号（如 `armbian-update -k 5.15.50`），也可指定内核系列（如 `armbian-update -k 5.15`），指定系列时将自动使用该系列的最新版本。
 
@@ -652,42 +648,45 @@ armbian-software
 ```shell
 armbian-apt
 
-[ STEPS ] Welcome to the Armbian source change script.
+[ STEPS ] Welcome to the APT Mirror Source Switching Tool.
 [ INFO ] Please select a [ bookworm ] mirror site.
-  ┌──────┬───────────────────┬────────────────────────────────┐
-  │  ID  │  Country/Region   │  Mirror Site                   │
-  ├──────┼───────────────────┼────────────────────────────────┤
-  │   0  │  -                │  Restore default source        │
-  │   1  │  China            │  mirrors.tuna.tsinghua.edu.cn  │
-  │   2  │  China            │  mirrors.bfsu.edu.cn           │
-  │   3  │  China            │  mirrors.aliyun.com            │
-  │   4  │  Hongkong, China  │  mirrors.xtom.hk               │
-  │   5  │  Taiwan, China    │  opensource.nchc.org.tw        │
-  ├──────┼───────────────────┼────────────────────────────────┤
-  │   6  │  United States    │  mirrors.ocf.berkeley.edu      │
-  │   7  │  United States    │  mirrors.xtom.com              │
-  │   8  │  United States    │  mirrors.mit.edu               │
-  │   9  │  Canada           │  mirror.csclub.uwaterloo.ca    │
-  │  10  │  Canada           │  muug.ca/mirror                │
-  ├──────┼───────────────────┼────────────────────────────────┤
-  │  11  │  Finland          │  mirror.kumi.systems           │
-  │  12  │  Netherlands      │  mirrors.xtom.nl               │
-  │  13  │  Germany          │  mirrors.xtom.de               │
-  │  14  │  Russia           │  mirror.yandex.ru              │
-  │  15  │  India            │  in.mirror.coganng.com         │
-  ├──────┼───────────────────┼────────────────────────────────┤
-  │  16  │  Estonia          │  mirrors.xtom.ee               │
-  │  17  │  Australia        │  mirrors.xtom.au               │
-  │  18  │  South Korea      │  mirror.yuki.net.uk            │
-  │  19  │  Singapore        │  mirror.sg.gs                  │
-  │  20  │  Japan            │  mirrors.xtom.jp               │
-  └──────┴───────────────────┴────────────────────────────────┘
+  ┌──────┬───────────────────┬─────────────────────────────────┐
+  │  ID  │  Country/Region   │  Mirror Site                    │
+  ├──────┼───────────────────┼─────────────────────────────────┤
+  │   0  │  -                │  Restore default source         │
+  ├──────┼───────────────────┼─────────────────────────────────┤
+  │   1  │  China            │  mirrors.tuna.tsinghua.edu.cn   │
+  │   2  │  China            │  mirrors.bfsu.edu.cn            │
+  │   3  │  China            │  mirrors.aliyun.com             │
+  │   4  │  China            │  mirrors.huaweicloud.com        │
+  │   5  │  Taiwan, China    │  mirror.twds.com.tw             │
+  ├──────┼───────────────────┼─────────────────────────────────┤
+  │   6  │  Russia           │  mirror.yandex.ru               │
+  │   7  │  South Korea      │  ftp.kaist.ac.kr                │
+  │   8  │  South Korea      │  ftp.lanet.kr,ftp.kaist.ac.kr   │
+  │   9  │  Singapore        │  mirror.sg.gs                   │
+  │  10  │  Australia        │  mirror.aarnet.edu.au           │
+  ├──────┼───────────────────┼─────────────────────────────────┤
+  │  11  │  United States    │  mirrors.ocf.berkeley.edu       │
+  │  12  │  United States    │  files.openstack.org/mirror     │
+  │  13  │  United States    │  steadfastnet.com,leaseweb.net  │
+  │  14  │  Canada           │  mirror.csclub.uwaterloo.ca     │
+  │  15  │  Canada           │  mirror.servercodes.com         │
+  ├──────┼───────────────────┼─────────────────────────────────┤
+  │  16  │  Denmark          │  ftp.openbsd.dk/mirrors         │
+  │  17  │  Denmark          │  mirrors.dotsrc.org             │
+  │  18  │  Germany          │  mirror.dogado.de               │
+  │  19  │  Germany          │  ftp.de.debian.org,ftp.fau.de   │
+  │  20  │  United Kingdom   │  mirror.yuki.net.uk             │
+  └──────┴───────────────────┴─────────────────────────────────┘
 [ OPTIONS ] Please Input ID: 1
-[ INFO ] Your selected source ID is: [ 1 ]
-[ STEPS ] Start to change the source of the system: [ mirrors.tuna.tsinghua.edu.cn ]
-[ INFO ] The system release is: [ bookworm ]
-[ SUCCESS ] Change the source of the system successfully.
+[ INFO ] Selected mirror source ID: [ 1 ]
+[ STEPS ] Changing APT mirror source to: [ mirrors.tuna.tsinghua.edu.cn ]
+[ INFO ] System release: [ bookworm ]
+[ SUCCESS ] APT mirror source changed successfully.
 ```
+
+选择 ID `0` 可从备份文件恢复默认软件源，`armbian-apt -h` 显示帮助信息。在输入有效的 ID 之前不会修改任何文件，因此取消操作不会改变现有的软件源配置。
 
 ## 12. 常见问题
 
@@ -1472,7 +1471,6 @@ cm9vdA 的开源项目 [cm9vdA/build-linux](https://github.com/cm9vdA/build-linu
 - 编译 DLFR100(rk3399) 设备的 u-boot：[Link](https://github.com/ophub/amlogic-s9xxx-armbian/issues/1522#issuecomment-1622919423)
 - 编译 ZYSJ(rk3399) 设备的 u-boot：[Link](https://github.com/ophub/amlogic-s9xxx-armbian/issues/1380#issuecomment-1539325464)
 
-
 ### 12.12 内存大小识别错误
 
 若内存大小识别不正确（4G 内存识别为 1-2G 属异常，识别为 3.7G 属正常），可尝试手动复制 `/boot/UBOOT_OVERLOAD` 文件（注意是`复制`而非`改名`，改名后安装或更新操作将导致无法启动）：USB 中使用时保存为 `/boot/u-boot.ext`，eMMC 中使用时保存为 `/boot/u-boot.emmc`。
@@ -1635,7 +1633,18 @@ hexdump -C reserved_first_8M.bin | less
 
 在 [yml 工作流控制文件](../.github/workflows/build-armbian-arm64-server-image.yml) 的 `armbian_board` 中添加对应的 `BOARD` 选项，使其支持在 GitHub Actions 中使用。
 
-### 12.16 如何解决写入 eMMC 时 I/O 错误的问题
+### 12.16 如何解决 dtb 频率导致系统无法启动或写入 eMMC 时 I/O 错误的问题
+
+当 dtb 的频率较高时，会导致部分设备无法正常启动，卡在启动界面上，例如 [Issues](https://github.com/ophub/amlogic-s9xxx-armbian/issues/3678#issuecomment-5749939734) 中的案例，报错内容如下：
+
+```shell
+Loading, please wait...
+Starting systemd-udevd version 259.5-0ubuntus.4
+Begin: Loading essential drivers ... done.
+Begin: Running /scripts/init-premount ... done.
+Begin: Mounting root file system... Begin: Running /scripts/local-top ... done.
+Begin: Running /scripts/local-premount ... Scanning for Btrfs filesystems
+```
 
 部分设备可从 USB/SD/TF 正常启动 Armbian，但写入 eMMC 时会出现 I/O 写入错误，例如 [Issues](https://github.com/ophub/amlogic-s9xxx-armbian/issues/989) 中的案例，报错内容如下：
 

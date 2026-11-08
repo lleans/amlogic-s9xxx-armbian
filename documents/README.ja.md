@@ -8,7 +8,7 @@ GitHub Actions は Microsoft が提供するサービスであり、高性能な
 
 - [Armbian の構築と使用方法](#armbian-の構築と使用方法)
 - [目次](#目次)
-  - [1. 自分の Github アカウントを登録する](#1-自分の-github-アカウントを登録する)
+  - [1. 自分の GitHub アカウントを登録する](#1-自分の-github-アカウントを登録する)
   - [2. プライバシー変数 GITHUB\_TOKEN 等の設定](#2-プライバシー変数-github_token-等の設定)
   - [3. リポジトリをフォークしてワークフロー権限を設定する](#3-リポジトリをフォークしてワークフロー権限を設定する)
   - [4. Armbian システムのカスタマイズファイルの説明](#4-armbian-システムのカスタマイズファイルの説明)
@@ -16,7 +16,7 @@ GitHub Actions は Microsoft が提供するサービスであり、高性能な
     - [5.1 手動コンパイル](#51-手動コンパイル)
     - [5.2 定期コンパイル](#52-定期コンパイル)
     - [5.3 デフォルトシステム設定のカスタマイズ](#53-デフォルトシステム設定のカスタマイズ)
-    - [5.4 論理ボリュームを使用して Github Actions のコンパイル領域を拡張する](#54-論理ボリュームを使用して-github-actions-のコンパイル領域を拡張する)
+    - [5.4 論理ボリュームを使用して GitHub Actions のコンパイル領域を拡張する](#54-論理ボリュームを使用して-github-actions-のコンパイル領域を拡張する)
     - [5.5 Armbian Docker イメージの作成](#55-armbian-docker-イメージの作成)
   - [6. システムの保存](#6-システムの保存)
   - [7. システムのダウンロード](#7-システムのダウンロード)
@@ -103,13 +103,14 @@ GitHub Actions は Microsoft が提供するサービスであり、高性能な
         - [12.15.3.2 重要なパーティションのバックアップ](#121532-重要なパーティションのバックアップ)
         - [12.15.3.3 特殊パーティション書き込みファイルの追加](#121533-特殊パーティション書き込みファイルの追加)
       - [12.15.4 フロー制御ファイルの追加](#12154-フロー制御ファイルの追加)
-    - [12.16 eMMC への書き込み時の I/O エラーの解決方法](#1216-emmc-への書き込み時の-io-エラーの解決方法)
+    - [12.16 DTBの周波数に起因するシステムの起動失敗やeMMC書き込み時のI/Oエラーを解決する方法](#1216-dtbの周波数に起因するシステムの起動失敗やemmc書き込み時のioエラーを解決する方法)
     - [12.17 Bullseye バージョンで音が出ない問題の解決方法](#1217-bullseye-バージョンで音が出ない問題の解決方法)
     - [12.18 boot.scr ファイルのコンパイル方法](#1218-bootscr-ファイルのコンパイル方法)
     - [12.19 リモートデスクトップの有効化とデフォルトポートの変更方法](#1219-リモートデスクトップの有効化とデフォルトポートの変更方法)
     - [12.20 TCP 輻輳制御の最適化方法](#1220-tcp-輻輳制御の最適化方法)
+    - [12.21 HDMI EDID 認識異常の解決方法](#1221-hdmi-edid-認識異常の解決方法)
 
-## 1. 自分の Github アカウントを登録する
+## 1. 自分の GitHub アカウントを登録する
 
 後続のシステムカスタマイズ操作を行うために、アカウントを登録してください。github.com ウェブサイトの右上にある `Sign up` ボタンをクリックし、案内に従って登録を完了してください。
 
@@ -190,7 +191,7 @@ schedule:
 
 ローカルコンパイル時は `-b` パラメータで指定し、GitHub Actions でのコンパイル時は `armbian_board` パラメータで指定します。`-b all` は `BUILD` が `yes` の全デバイスを構築することを意味します。`BOARD` パラメータを指定する場合、`BUILD` 値が `yes` でも `no` でも構築可能です。例：`-b r68s_s905x3-tx3_s905l3a-cm311`
 
-### 5.4 論理ボリュームを使用して Github Actions のコンパイル領域を拡張する
+### 5.4 論理ボリュームを使用して GitHub Actions のコンパイル領域を拡張する
 
 GitHub Actions のデフォルトコンパイル領域は 84G で、システムと必要なパッケージを除くと利用可能な領域は約 50G です。全ファームウェアのコンパイル時に容量不足が発生する場合があり、論理ボリュームを使用してコンパイル領域を約 110G に拡張できます。[.github/workflows/build-armbian-arm64-server-image.yml](../.github/workflows/build-armbian-arm64-server-image.yml) ファイルの方法を参照し、以下のコマンドで論理ボリュームを作成し、コンパイル時に論理ボリュームのパスを使用してください。
 
@@ -269,11 +270,11 @@ Armbian システムにログイン（デフォルトユーザー: root, デフ�
 armbian-install
 ```
 
-| オプションパラメータ  | デフォルト値   | 選択肢     | 説明                |
-| -------  | ------- | ------  | -----------------   |
-| -m       | no      | yes/no  | Mainline u-boot を使用 |
-| -a       | yes     | yes/no  | [ampart](https://github.com/7Ji/ampart) パーティションテーブル調整ツールを使用 |
-| -l       | no      | yes/no  | List. 全デバイスリストを表示 |
+| オプションパラメータ | デフォルト値 | 選択肢 | 説明 |
+| --- | --- | --- | --- |
+| -m | no | yes/no | Mainline u-boot を使用 |
+| -a | yes | yes/no | [ampart](https://github.com/7Ji/ampart) パーティションテーブル調整ツールを使用 |
+| -l | no | yes/no | 全デバイスリストを表示 |
 
 例: `armbian-install -m yes -a no`
 
@@ -386,7 +387,6 @@ RKDevTool フラッシュツールを開き、右クリックで項目を追加�
 - アドレス `0x00000000`、名前 `system`、パスはフラッシュする `Armbian.img` システムを選択します。
 - 実行をクリックし、プログレスバーが完了するまで待ちます。
 
-
 ### 8.3 Allwinner シリーズのインストール方法
 
 Armbian システムにログイン（デフォルトユーザー: root, デフォルトパスワード: 1234）→ コマンドを入力：
@@ -430,31 +430,31 @@ docker network create -d macvlan \
 
 #### 8.4.3 Armbian Docker コンテナの実行
 
-`armbian-trixie:arm64` イメージを例に、Armbian コンテナの実行方法を説明します。
+`armbian-resolute:arm64` イメージを例に、Armbian コンテナの実行方法を説明します。
 
 ```shell
 # バックグラウンドで Armbian コンテナを実行
 # コンテナ名、IPアドレス、イメージバージョンなどは実際の状況に合わせて変更してください
-docker run -itd --name=armbian-trixie \
+docker run -itd --name=armbian-resolute \
     --privileged \
     --network macvlan \
     --ip 10.1.1.15 \
-    --hostname=armbian-trixie \
+    --hostname=armbian-resolute \
     -e TZ=Asia/Shanghai \
     --restart unless-stopped \
-    ophub/armbian-trixie:arm64
+    ophub/armbian-resolute:arm64
 
 # Armbian コンテナのログを確認
-docker logs -f armbian-trixie
+docker logs -f armbian-resolute
 
 # Armbian コンテナに入る
-docker exec -it armbian-trixie bash
+docker exec -it armbian-resolute bash
 
 # Armbian コンテナから出る
 exit
 
 # Armbian コンテナを停止して削除
-docker rm -f armbian-trixie
+docker rm -f armbian-resolute
 ```
 
 ## 9. Armbian カーネルのコンパイル
@@ -513,17 +513,15 @@ Linux メインラインカーネルには一部のドライバがまだ内蔵�
 armbian-sync
 armbian-update -k 6.1
 
-
 # ステップ2：コンパイルツールのインストール
 mkdir -p /usr/local/toolchain
 cd /usr/local/toolchain
 # コンパイルツールのダウンロード
-wget https://github.com/ophub/kernel/releases/download/dev/arm-gnu-toolchain-15.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz
+wget https://github.com/ophub/kernel/releases/download/toolchain/arm-gnu-toolchain-15.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz
 # 解凍
 tar -Jxf arm-gnu-toolchain-15.3.rel1-aarch64-aarch64-none-linux-gnu.tar.xz
 # その他のコンパイル依存パッケージのインストール（オプション、エラーメッセージに応じて不足分を手動インストール可能）
 armbian-kernel -u
-
 
 # ステップ3：ドライバのダウンロードとコンパイル
 # ドライバソースコードのダウンロード
@@ -543,7 +541,6 @@ export KSRC=/usr/lib/modules/$(uname -r)/build
 export M="/root/rtl8189ES_linux"
 # ドライバのコンパイル
 make
-
 
 # ステップ4：ドライバのインストール
 sudo cp -f 8189es.ko /lib/modules/$(uname -r)/kernel/drivers/net/wireless/
@@ -582,16 +579,16 @@ Armbian システムにログイン → コマンドを入力：
 armbian-update
 ```
 
-| オプションパラメータ  | デフォルト値        | 選択肢           | 説明                              |
-| -------- | ------------ | ------------- | -------------------------------- |
-| -r       | ophub/kernel | `<owner>/<repo>` | github.com からカーネルをダウンロードするリポジトリを設定  |
-| -u       | 自動        | stable/flippy/beta/rk3588/rk35xx | 使用するカーネルの [tags サフィックス](https://github.com/ophub/kernel/releases) を設定 |
-| -k       | 最新版        | カーネルバージョン       | [カーネルバージョン](https://github.com/ophub/kernel/releases/tag/kernel_stable) を設定  |
-| -b       | yes          | yes/no        | カーネル更新時に現在使用中のカーネルを自動バックアップ    |
-| -d       | deb          | tar/deb       | 優先使用するカーネルパッケージ形式を設定。指定形式が存在しない場合、スクリプトは自動的に別の形式を試行します。カスタムドライバをコンパイルする場合は `deb` 形式を推奨。 |
-| -m       | no           | yes/no        | メインライン u-boot を使用                    |
-| -s       | なし           | なし/ディスク名称     | [SOS] eMMC/NVMe/sdX などのディスク内のシステムカーネルを復旧 |
-| -h       | なし           | なし             | 使用方法のヘルプを表示                       |
+| オプションパラメータ | デフォルト値 | 選択肢 | 説明 |
+| --- | --- | --- | --- |
+| -r | ophub/kernel | `<owner>/<repo>` | github.com からカーネルをダウンロードするリポジトリを設定 |
+| -u | 自動 | stable/flippy/beta/rk3588/rk35xx | 使用するカーネルの [tags サフィックス](https://github.com/ophub/kernel/releases) を設定 |
+| -k | 最新版 | カーネルバージョン | [カーネルバージョン](https://github.com/ophub/kernel/releases/tag/kernel_stable) を設定 |
+| -b | yes | yes/no | カーネル更新時に現在使用中のカーネルを自動バックアップ |
+| -d | deb | tar/deb | 優先使用するカーネルパッケージ形式を設定。指定形式が存在しない場合、スクリプトは自動的に別の形式を試行します。カスタムドライバをコンパイルする場合は `deb` 形式を推奨。 |
+| -m | no | yes/no | メインライン u-boot を使用 |
+| -s | なし | なし/ディスク名称 | [SOS] eMMC/NVMe/sdX などのディスク内のシステムカーネルを復旧 |
+| -h | なし | なし | 使用方法のヘルプを表示 |
 
 例: `armbian-update -k 5.15 -u stable -d deb`
 
@@ -651,42 +648,45 @@ armbian-software
 ```shell
 armbian-apt
 
-[ STEPS ] Welcome to the Armbian source change script.
+[ STEPS ] Welcome to the APT Mirror Source Switching Tool.
 [ INFO ] Please select a [ bookworm ] mirror site.
-  ┌──────┬───────────────────┬────────────────────────────────┐
-  │  ID  │  Country/Region   │  Mirror Site                   │
-  ├──────┼───────────────────┼────────────────────────────────┤
-  │   0  │  -                │  Restore default source        │
-  │   1  │  China            │  mirrors.tuna.tsinghua.edu.cn  │
-  │   2  │  China            │  mirrors.bfsu.edu.cn           │
-  │   3  │  China            │  mirrors.aliyun.com            │
-  │   4  │  Hongkong, China  │  mirrors.xtom.hk               │
-  │   5  │  Taiwan, China    │  opensource.nchc.org.tw        │
-  ├──────┼───────────────────┼────────────────────────────────┤
-  │   6  │  United States    │  mirrors.ocf.berkeley.edu      │
-  │   7  │  United States    │  mirrors.xtom.com              │
-  │   8  │  United States    │  mirrors.mit.edu               │
-  │   9  │  Canada           │  mirror.csclub.uwaterloo.ca    │
-  │  10  │  Canada           │  muug.ca/mirror                │
-  ├──────┼───────────────────┼────────────────────────────────┤
-  │  11  │  Finland          │  mirror.kumi.systems           │
-  │  12  │  Netherlands      │  mirrors.xtom.nl               │
-  │  13  │  Germany          │  mirrors.xtom.de               │
-  │  14  │  Russia           │  mirror.yandex.ru              │
-  │  15  │  India            │  in.mirror.coganng.com         │
-  ├──────┼───────────────────┼────────────────────────────────┤
-  │  16  │  Estonia          │  mirrors.xtom.ee               │
-  │  17  │  Australia        │  mirrors.xtom.au               │
-  │  18  │  South Korea      │  mirror.yuki.net.uk            │
-  │  19  │  Singapore        │  mirror.sg.gs                  │
-  │  20  │  Japan            │  mirrors.xtom.jp               │
-  └──────┴───────────────────┴────────────────────────────────┘
+  ┌──────┬───────────────────┬─────────────────────────────────┐
+  │  ID  │  Country/Region   │  Mirror Site                    │
+  ├──────┼───────────────────┼─────────────────────────────────┤
+  │   0  │  -                │  Restore default source         │
+  ├──────┼───────────────────┼─────────────────────────────────┤
+  │   1  │  China            │  mirrors.tuna.tsinghua.edu.cn   │
+  │   2  │  China            │  mirrors.bfsu.edu.cn            │
+  │   3  │  China            │  mirrors.aliyun.com             │
+  │   4  │  China            │  mirrors.huaweicloud.com        │
+  │   5  │  Taiwan, China    │  mirror.twds.com.tw             │
+  ├──────┼───────────────────┼─────────────────────────────────┤
+  │   6  │  Russia           │  mirror.yandex.ru               │
+  │   7  │  South Korea      │  ftp.kaist.ac.kr                │
+  │   8  │  South Korea      │  ftp.lanet.kr,ftp.kaist.ac.kr   │
+  │   9  │  Singapore        │  mirror.sg.gs                   │
+  │  10  │  Australia        │  mirror.aarnet.edu.au           │
+  ├──────┼───────────────────┼─────────────────────────────────┤
+  │  11  │  United States    │  mirrors.ocf.berkeley.edu       │
+  │  12  │  United States    │  files.openstack.org/mirror     │
+  │  13  │  United States    │  steadfastnet.com,leaseweb.net  │
+  │  14  │  Canada           │  mirror.csclub.uwaterloo.ca     │
+  │  15  │  Canada           │  mirror.servercodes.com         │
+  ├──────┼───────────────────┼─────────────────────────────────┤
+  │  16  │  Denmark          │  ftp.openbsd.dk/mirrors         │
+  │  17  │  Denmark          │  mirrors.dotsrc.org             │
+  │  18  │  Germany          │  mirror.dogado.de               │
+  │  19  │  Germany          │  ftp.de.debian.org,ftp.fau.de   │
+  │  20  │  United Kingdom   │  mirror.yuki.net.uk             │
+  └──────┴───────────────────┴─────────────────────────────────┘
 [ OPTIONS ] Please Input ID: 1
-[ INFO ] Your selected source ID is: [ 1 ]
-[ STEPS ] Start to change the source of the system: [ mirrors.tuna.tsinghua.edu.cn ]
-[ INFO ] The system release is: [ bookworm ]
-[ SUCCESS ] Change the source of the system successfully.
+[ INFO ] Selected mirror source ID: [ 1 ]
+[ STEPS ] Changing APT mirror source to: [ mirrors.tuna.tsinghua.edu.cn ]
+[ INFO ] System release: [ bookworm ]
+[ SUCCESS ] APT mirror source changed successfully.
 ```
+
+ID `0` を選択するとバックアップファイルからデフォルトのソースを復元できます。`armbian-apt -h` でヘルプ情報を表示します。有効な ID が入力されるまでファイルは変更されないため、プロンプトをキャンセルしてもソース設定は変わりません。
 
 ## 12. よくある質問
 
@@ -1448,7 +1448,7 @@ git clone -b debian https://github.com/radxa/build.git
 # ~/rk3588-sdk/rkbin/：ビルド済みの Rockchip バイナリ（第1ステージローダーと ATF（Arm Trustzone ファームウェア）を含む）。
 # ~/rk3588-sdk/u-boot/：OS（Linux や Android など）を起動するための第2ステージブートローダー。
 
-# 03. u-boot のコンパイル（For ROCK 5B）
+# 03. u-boot のコンパイル (For ROCK 5B)
 cd ~/rk3588-sdk
 ./build/mk-uboot.sh rk3588-rock-5b
 
@@ -1470,7 +1470,6 @@ cm9vdA のオープンソースプロジェクト [cm9vdA/build-linux](https://g
 - Lenovo-Leez-P710(rk3399) デバイスの u-boot コンパイル：[Link](https://github.com/ophub/amlogic-s9xxx-armbian/issues/1609#issuecomment-1681494735)
 - DLFR100(rk3399) デバイスの u-boot コンパイル：[Link](https://github.com/ophub/amlogic-s9xxx-armbian/issues/1522#issuecomment-1622919423)
 - ZYSJ(rk3399) デバイスの u-boot コンパイル：[Link](https://github.com/ophub/amlogic-s9xxx-armbian/issues/1380#issuecomment-1539325464)
-
 
 ### 12.12 メモリサイズの誤認識
 
@@ -1634,7 +1633,18 @@ hexdump -C reserved_first_8M.bin | less
 
 [yml ワークフロー制御ファイル](../.github/workflows/build-armbian-arm64-server-image.yml) の `armbian_board` に対応する `BOARD` オプションを追加し、GitHub Actions での使用をサポートさせます。
 
-### 12.16 eMMC への書き込み時の I/O エラーの解決方法
+### 12.16 DTBの周波数に起因するシステムの起動失敗やeMMC書き込み時のI/Oエラーを解決する方法
+
+DTBの周波数が高い場合、一部のデバイスが正常に起動できず、起動画面でフリーズしてしまうことがあります。例えば、[Issues](https://github.com/ophub/amlogic-s9xxx-armbian/issues/3678#issuecomment-5749939734) で報告されている事例のように、以下のようなエラーが出力されます。
+
+```shell
+Loading, please wait...
+Starting systemd-udevd version 259.5-0ubuntus.4
+Begin: Loading essential drivers ... done.
+Begin: Running /scripts/init-premount ... done.
+Begin: Mounting root file system... Begin: Running /scripts/local-top ... done.
+Begin: Running /scripts/local-premount ... Scanning for Btrfs filesystems
+```
 
 一部のデバイスは USB/SD/TF から Armbian を正常に起動できますが、eMMC に書き込む際に I/O 書き込みエラーが発生します。例えば [Issues](https://github.com/ophub/amlogic-s9xxx-armbian/issues/989) のケースでは、以下のようなエラーが報告されています：
 
